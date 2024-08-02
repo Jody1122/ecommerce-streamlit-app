@@ -49,7 +49,7 @@ batch_size = 10000
 batch_number = 0
 
 # API endpoint
-api_url = 'http://ec2-18-191-222-181.us-east-2.compute.amazonaws.com:8508/get_processed_data'
+api_url = 'http://ec2-18-191-222-181.us-east-2.compute.amazonaws.com:8510/get_processed_data'
 
 # Initialize an empty DataFrame
 all_batches_df = pd.DataFrame()
