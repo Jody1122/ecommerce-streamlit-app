@@ -2,13 +2,46 @@ import streamlit as st
 import pandas as pd
 import requests
 import altair as alt
+import boto3
+import os
+
+# Function to load AWS credentials from a file
+def load_aws_credentials(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            for line in lines:
+                key, value = line.strip().split('=')
+                os.environ[key] = value
+        print("AWS credentials loaded successfully.")
+    except FileNotFoundError:
+        print(f"Error: The file {file_path} was not found.")
+        exit(1)
+    except Exception as e:
+        print(f"Error reading the credentials file: {e}")
+        exit(1)
+
+# Load AWS credentials
+credentials_file_path = '/home/ubuntu/aws_credentials.txt'  # Path on your EC2 instance
+load_aws_credentials(credentials_file_path)
+
+# Initialize Boto3 client using the loaded credentials
+s3 = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION')
+)
 
 # Function to fetch data from the Flask API in batches
 def fetch_data_batch(api_url, batch_size, batch_number):
     params = {'batch_size': batch_size, 'batch_number': batch_number}
     response = requests.get(api_url, params=params)
     data = response.json()
-    df = pd.read_json(data, orient='split')
+
+    # Convert the dictionary directly into a DataFrame
+    df = pd.DataFrame(data)
+    
     return df
 
 # Parameters for batch processing
