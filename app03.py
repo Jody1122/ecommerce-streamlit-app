@@ -33,36 +33,43 @@ s3 = boto3.client(
     region_name=os.getenv('AWS_REGION')
 )
 
-# Function to fetch data from the Flask API in batches
-def fetch_data_batch(api_url, batch_size, batch_number):
-    params = {'batch_size': batch_size, 'batch_number': batch_number}
-    response = requests.get(api_url, params=params)
-    data = response.json()
+@st.cache_data
+# Function to fetch the entire dataset from the Flask API
+def fetch_data(api_url):
+    try:
+        response = requests.get(api_url)
+        response.raise_for_status()
+        data = response.json()
 
-    # Convert the dictionary directly into a DataFrame
-    df = pd.DataFrame(data)
-    
-    return df
+        # Ensure 'columns' and 'index' are correctly used
+        columns = data.get('columns')
+        index = data.get('index')
+        data = data.get('data')
 
-# Parameters for batch processing
-batch_size = 10000
-batch_number = 0
+        if not all([columns, index, data]):
+            print("Error: Missing 'columns', 'index', or 'data' in the returned dictionary.")
+            return pd.DataFrame()  # Return an empty DataFrame
+
+        # Create DataFrame
+        df = pd.DataFrame(data, columns=columns, index=index)
+
+        return df
+
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+        return pd.DataFrame()  # Return an empty DataFrame in case of error
 
 # API endpoint
 api_url = 'http://ec2-18-191-222-181.us-east-2.compute.amazonaws.com:8510/get_processed_data'
 
-# Initialize an empty DataFrame
-all_batches_df = pd.DataFrame()
+# Fetch the entire dataset
+df = fetch_data(api_url)
 
-# Fetch and combine data in batches
-while True:
-    batch_df = fetch_data_batch(api_url, batch_size, batch_number)
-    if batch_df.empty:
-        break  # Stop if no more data is returned
-    all_batches_df = pd.concat([all_batches_df, batch_df], ignore_index=True)
-    batch_number += 1
-
-df = all_batches_df
+df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+df['month'] = df['timestamp'].dt.month
+df['month_name'] = df['timestamp'].dt.strftime('%b')
+df['day_of_week'] = df['timestamp'].dt.dayofweek
+df['day_name'] = df['timestamp'].dt.strftime('%A')
 
 # Your existing Streamlit visualization code
 st.title("Ecommerce Data Exploration")
@@ -122,3 +129,4 @@ chart = alt.Chart(outliers_by_market).mark_bar(color='#005f73').encode(
     width=alt.Step(40)  # controls the width of bar.
 )
 st.altair_chart(chart, use_container_width=True)
+
