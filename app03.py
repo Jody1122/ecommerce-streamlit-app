@@ -45,7 +45,7 @@ def fetch_data(api_url):
         return pd.DataFrame()  # Return an empty DataFrame in case of error
 
 # API endpoint
-api_url = 'http://ec2-18-191-222-181.us-east-2.compute.amazonaws.com:8510/get_processed_data'
+api_url = 'http://ec2-18-191-16-90.us-east-2.compute.amazonaws.com:8510/get_processed_data'
 
 # Fetch the entire dataset
 df = fetch_data(api_url)
